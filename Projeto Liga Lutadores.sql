@@ -416,3 +416,139 @@ SELECT * FROM ranking_liga;
 
 ###
 
+INSERT INTO dados_lutador (nome, idade, genero, dt_nascimento, cpf, signo, email, telefone)
+VALUES
+('Edu Bronqs', 35, 'M', '1990-07-01', '345.769.98-58', 'Capricórnio', 'charlinho@gmail.com', '(11) 97754-6546'),
+('Lea', 31, 'F', '1994-09-12', '643.123.98-65', 'Peixes', 'calabrations@gmail.com', '(95) 98673-5474');
+
+INSERT INTO dados_treinador (nome_treinador, idade, genero, dt_nascimento, cpf, email, telefone)
+VALUES
+('Brunega Sirenni', 19, 'M', '2006-03-21', '643.546.865-51', 'ncurtoxere@gmail.com', '(45) 99542-5335');
+
+DELETE FROM dados_treinador WHERE nome_treinador = "Brunega Sirenni";
+DELETE FROM dados_lutador WHERE nome = "Edu Bronqs";
+DELETE FROM dados_lutador WHERE nome = "Lea";
+
+DELETE FROM liga_lutadores WHERE nome = "Edu Bronqs";
+DELETE FROM liga_lutadores WHERE id_lutador = 22;
+
+# 2° View,para ver o nome dos lutadores e dos teinadores em vez do ID
+CREATE VIEW visu_tl AS
+SELECT
+    dt.nome_treinador AS Treinador,
+    dl.nome AS Lutador
+FROM
+    treinador_lutador tl
+JOIN
+    dados_treinador dt ON tl.id_treinador = dt.id_treinador
+JOIN
+    dados_lutador dl ON tl.id_lutador = dl.id_lutador;
+
+# testando a 2° view
+SELECT * FROM visu_tl;
+
+# 3° View mostrando lutadores que tem mais vitoria que derrota
+CREATE VIEW MV AS
+SELECT * FROM liga_lutadores
+WHERE vitorias > derrotas
+ORDER BY pontos DESC;
+
+# testando a 3° view
+SELECT * FROM MV;
+
+# 4° View mostrando lutadores que tem mais derrota que vitoria 
+CREATE VIEW MP AS
+SELECT * FROM liga_lutadores
+WHERE derrotas > vitorias
+ORDER BY pontos DESC;
+
+# testando a 4° view
+SELECT * FROM MP;
+
+# 5° view mostra lutadores com a mesma quantidade de vitorias e derrotas
+CREATE VIEW LE AS
+SELECT * FROM liga_lutadores
+WHERE derrotas = vitorias
+ORDER BY pontos DESC;
+
+# testando a 5° view 
+SELECT * FROM LE;
+
+# 6° View lutadores apenas do genênero feminino(F)
+CREATE VIEW l_femininos AS
+SELECT * FROM dados_lutador
+WHERE genero = "F";
+
+# testando a 6° view
+SELECT * FROM l_femininos;
+
+# 7° View lutadores apenas do genênero masculinos(M)
+CREATE VIEW l_masculinos AS
+SELECT * FROM dados_lutador
+WHERE genero = "M";
+
+# testando a 7° view
+SELECT * FROM l_masculinos;
+
+# 8° view mostra os lutadores(as) do mais velho para o novo 
+CREATE VIEW order_idade AS
+SELECT nome, idade
+FROM dados_lutador
+ORDER BY idade DESC;
+
+# testando a 8° view
+SELECT * FROM order_idade;
+
+# 9° view mostra estatísticas das lutadores femininas
+CREATE VIEW EF AS
+SELECT
+  genero,
+  SUM(pontos) AS total_pontos
+FROM liga_lutadores l
+JOIN dados_lutador d ON l.id_lutador = d.id_lutador
+GROUP BY genero
+HAVING genero = 'F';
+
+# testando a 9° view 
+SELECT * FROM EF;
+
+# 10° view mostra estatísticas das lutadores masculinos
+CREATE VIEW EM AS
+SELECT
+  genero,
+  SUM(pontos) AS total_pontos
+FROM liga_lutadores l
+JOIN dados_lutador d ON l.id_lutador = d.id_lutador
+GROUP BY genero
+HAVING genero = 'M';
+# testando a 10° view
+SELECT * FROM EM;
+
+# 11° view mostra a comparação dos dois juntos
+CREATE VIEW EG AS
+SELECT
+  genero,
+  SUM(pontos) AS total_pontos
+FROM liga_lutadores l
+JOIN dados_lutador d ON l.id_lutador = d.id_lutador
+GROUP BY genero;
+# testando a 11° view
+SELECT * FROM EG;
+
+# 1° Procedure
+# testando o 1° procedure
+
+# 2° Procedure
+# testando o 2° procedure
+
+# 3° Procedure
+# testando o 3° procedure
+
+# 1° Função
+# testando a 1° Função
+
+# 2° Função
+# testando a 2° Função
+
+# 3° Função
+# testando a 3° Função
