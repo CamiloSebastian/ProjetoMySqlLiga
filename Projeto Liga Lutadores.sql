@@ -535,20 +535,221 @@ GROUP BY genero;
 # testando a 11° view
 SELECT * FROM EG;
 
-# 1° Procedure
+# 1° >>>>>>>>>>>>>>>>>>>>>>>>>>>> PROCEDURE  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 # testando o 1° procedure
+# essa procedure Promove automaticamente os 4 melhores lutadores para um torneio especial
 
-# 2° Procedure
+CREATE TABLE melhores_l (
+    id_lutador INT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(100),
+    pontos INT
+);
+
+
+DELIMITER $$
+
+CREATE PROCEDURE promover_ML()
+BEGIN
+    # Limpa a tabela antes de inserir novos dados
+    DELETE FROM melhores_l;
+
+    # Insere os 4 lutadores com mais pontos na tabela 'melhores_l'
+    INSERT INTO melhores_l (id_lutador, nome, pontos)
+    SELECT id_lutador, nome, pontos
+    FROM liga_lutadores
+    ORDER BY pontos DESC
+    LIMIT 4;
+END $$
+
+DELIMITER ;
+
+# abaixo a gente ativa a procedure
+CALL promover_ML();
+
+#abaixo verificando se ta tudo certo
+SELECT * FROM melhores_l;
+
+# 2° >>>>>>>>>>>>>>>>>>>>>>>>>>> PROCEDURE  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 # testando o 2° procedure
+# essa procedure vai zerar todas as estatisticas de todos os jogadores
+ 
+DELIMITER $$
 
-# 3° Procedure
+CREATE PROCEDURE reset_liga()
+BEGIN
+    UPDATE liga_lutadores
+    SET 
+        pontos = 0,
+        vitorias = 0,
+        derrotas = 0,
+        empates = 0,
+        partidas = 0,
+        saldo_p = 0;
+END $$
+
+DELIMITER ;
+
+SELECT * FROM liga_lutadores;
+# abaixo ativa a procedure
+CALL reset_liga();
+
+SELECT * FROM liga_lutadores;
+
+# 3° >>>>>>>>>>>>>>>>>>>>>>>>>> PROCEDURE  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 # testando o 3° procedure
+# vai criar ter uma tabela Rivalidade e essa procedure pega os lutadores que mais se enfrentaram pra por nessa tabela
 
-# 1° Função
+CREATE TABLE rivalidade (
+    id_rivalidade INT AUTO_INCREMENT PRIMARY KEY,
+    lutador_a VARCHAR(100),
+    lutador_b VARCHAR(100),
+    qtd_confrontos INT
+);
+
+DELIMITER $$
+
+CREATE PROCEDURE criar_rivais()
+BEGIN
+    # vai limpar as rivalidades anteriores
+    TRUNCATE TABLE rivalidade;
+
+    # Insere os pares ordenados e contagem de confrontos
+    INSERT INTO rivalidade (lutador_a, lutador_b, qtd_confrontos)
+    SELECT
+        LEAST(lutador1, lutador2) AS lutador_a,
+        GREATEST(lutador1, lutador2) AS lutador_b,
+        COUNT(*) AS qtd_confrontos
+    FROM confrontos
+    GROUP BY lutador_a, lutador_b
+    ORDER BY qtd_confrontos DESC;
+END $$
+
+DELIMITER ;
+# decidir colocar o LEAST() e GREATEST() para evitar duplicatas do tipo “Cammy vs Mai” e “Mai vs Cammy”.
+
+CALL criar_rivais();
+# acima ativa a procedure e abaixo tem o resultado de forma ordenada descrescente
+SELECT * FROM rivalidade ORDER BY qtd_confrontos DESC;
+
+# 1° >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> FUNÇAO  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 # testando a 1° Função
+# Essa função vai ser utilizada para atualizar ou consultar a idade em outras partes do banco.
 
-# 2° Função
+DELIMITER $$
+
+CREATE FUNCTION calc_idade(data_nascimento DATE)
+RETURNS INT
+DETERMINISTIC
+BEGIN
+    DECLARE idade INT;
+    
+    SET idade = YEAR(CURDATE()) - YEAR(data_nascimento);
+    
+    -- Ajusta se ainda não fez aniversário no ano corrente
+    IF DATE_FORMAT(CURDATE(), '%m%d') < DATE_FORMAT(data_nascimento, '%m%d') THEN
+        SET idade = idade - 1;
+    END IF;
+    
+    RETURN idade;
+END $$
+
+DELIMITER ;
+# aqui verifica a idade calculada de todos os lutadores
+SELECT nome, dt_nascimento, calc_idade(dt_nascimento) AS idade_calculada
+FROM dados_lutador;
+
+# 2° >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> FUNÇÃO  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 # testando a 2° Função
+# essa função vai fazer um aproveitamento de um lutador com base nos seus ultimos 5 confrontos(ou seja , quantos pontos ele fez nos ultimos 5 confrontos)
+DELIMITER $$
 
-# 3° Função
+CREATE FUNCTION aproveitamento_L(nome_lutador VARCHAR(100))
+RETURNS INT
+DETERMINISTIC
+BEGIN
+    DECLARE pontos INT DEFAULT 0;
+
+    # isso vai somar os pontos dos últimos 5 confrontos em que o lutador participou
+    SELECT SUM(
+        CASE
+            WHEN nome_lutador = lutador1 AND placar1 > placar2 THEN 2
+            WHEN nome_lutador = lutador2 AND placar2 > placar1 THEN 2
+            WHEN (nome_lutador = lutador1 OR nome_lutador = lutador2) AND placar1 = placar2 THEN 1
+            ELSE 0
+        END
+    )
+    INTO pontos
+    FROM (
+        SELECT * FROM confrontos
+        WHERE lutador1 = nome_lutador OR lutador2 = nome_lutador
+        ORDER BY id_confronto DESC
+        LIMIT 5
+    ) AS ultimos;
+
+    RETURN IFNULL(pontos, 0);
+END $$
+
+DELIMITER ;
+
+#aqui da pra ver de forma resumida o aproveitamento do lutador
+SELECT aproveitamento_L('Cammy White');
+SELECT aproveitamento_L('Nandinha Queen');
+
+# decidir criar uma view pra organizar melhor os nomes dos lutadores e seus pontos somados nos últimos 5 confrontos
+CREATE OR REPLACE VIEW VerAproveitamento AS
+SELECT 
+    nome,
+    aproveitamento_L(nome) AS VerAproveitamento
+FROM liga_lutadores;
+
+# abaixo vai verificar os aproveitamentos
+SELECT * FROM VerAproveitamento;
+
+# 3° >>>>>>>>>>>>>>>> FUNÇÃO <<<<<<<<<<<<
 # testando a 3° Função
+# essa função vai pegar todos os dados de um lutador especifico baseado no id dele e mostrar (nome, idade, pontos, vitorias, sado_p, cpf, telefone)
+DELIMITER $$
+
+CREATE FUNCTION perfil_L(p_id INT)
+RETURNS VARCHAR(1000)
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE resultado VARCHAR(1000);
+    DECLARE v_nome VARCHAR(100);
+    DECLARE v_idade INT;
+    DECLARE v_pontos INT;
+    DECLARE v_vitorias INT;
+    DECLARE v_saldo_p INT;
+    DECLARE v_cpf VARCHAR(14);
+    DECLARE v_telefone VARCHAR(20);
+
+    # essa parte vai coletar os dados do lutador
+    SELECT 
+        d.nome, d.idade, d.cpf, d.telefone,
+        l.pontos, l.vitorias, l.saldo_p
+    INTO 
+        v_nome, v_idade, v_cpf, v_telefone,
+        v_pontos, v_vitorias, v_saldo_p
+    FROM dados_lutador d
+    JOIN liga_lutadores l ON d.id_lutador = l.id_lutador
+    WHERE d.id_lutador = p_id;
+
+    # essa vai ser a string de retorno
+    SET resultado = CONCAT(
+        'Nome: ', v_nome, ', Idade: ', v_idade,
+        ', Pontos: ', v_pontos, ', Vitórias: ', v_vitorias,
+        ', Saldo: ', v_saldo_p, ', CPF: ', v_cpf,
+        ', Telefone: ', v_telefone
+    );
+
+    RETURN resultado;
+END$$
+
+DELIMITER ;
+
+# basta da o select ai abaixo que o senhor vai ver os resultados 
+
+SELECT perfil_L(4);
+SELECT perfil_L(13);
+SELECT perfil_L(20);
