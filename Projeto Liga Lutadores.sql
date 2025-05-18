@@ -635,8 +635,7 @@ SELECT * FROM rivalidade ORDER BY qtd_confrontos DESC;
 # testando a 1° Função
 # Essa função vai ser utilizada para atualizar ou consultar a idade em outras partes do banco.
 
-# apagando a coluna idade antiga que não tava sendo calculada certo
-ALTER TABLE dados_lutador DROP COLUMN idade;
+
 
 DELIMITER $$
 
