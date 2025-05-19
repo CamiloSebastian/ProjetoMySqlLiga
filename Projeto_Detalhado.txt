@@ -1,0 +1,98 @@
+# Projeto Final - Liga de Lutadores (MySQL)
+
+Este projeto consiste em um sistema de gerenciamento de uma liga de lutadores, com foco principal sendo a automatização através de gatilhos(o principal comando do projeto) tendo como foco o maior número de automatização possível(Caso queira uma versão mais limpa e organizada do código abra o "Projeto Liga Lutadores - Limpo" já o "Projeto Liga Lutadores" é a versão bruta, com todos os testes já feitos possíveis)(ambas funcionam igualmente)
+
+---
+
+
+# Tabelas principais:
+
+- dados_lutador: Dados dos lutadores (nome, idade, CPF, gênero, etc.).
+
+- dados_treinador: Dados dos treinadores (nome, idade, CPF, e-mail, etc.).
+
+- liga_lutadores: Estatísticas dos lutadores (pontos, vitórias, derrotas, empates, partidas, saldo de partidas). (TABELA PRINCIPAL DO PROJETO JUNTAMENTE DA confrontos e é inserida através de gatilhos das outras tabelas)
+
+- confrontos: Registra os confrontos entre lutadores com placares e participantes. (TABELA CHAVE DOS GATILHOS e A QUE FAZ O PROJETO FUNCIONAR)
+
+- treinador_lutador: Relação entre treinadores e seus lutadores. (Qual Treinador treina quem)
+
+- melhores_l: Tabela auxiliar que guarda os 4 lutadores com melhor desempenho. (Preenchida por Procedure)
+
+- rivalidade: Guarda pares de lutadores e a quantidade de confrontos entre eles. (Preenchida por Procedure)
+
+---
+
+# Gatilhos (TRIGGERS)
+
+1. inserir_lutador_liga 
+   Insere automaticamente um novo lutador na tabela 'liga_lutadores' quando for cadastrado em 'dados_lutador'.
+
+2. atualizar_vitorias 
+   Após a inserção de um confronto, atualiza as 'vitórias', 'derrotas' e 'empates' dos lutadores certo quando houver um confronto.
+
+3. atualizar_partidas  
+   Adiciona/Atualiza o número de partidas para os dois lutadores que tivera novo confronto.
+
+4. pontos_update  
+   Calcula automaticamente os pontos:  
+   pontos = (vitórias * 2) - derrotas + empates
+
+5. saldo_partidas_update  
+   atualiza o saldo_p a cada novo confronto(partidas = vitorias + empates + derrotas)
+
+6. atualizar_vitorias_update
+   Variação da 2 soque ao modificar um resultado de um confronto(caso mude o vencedor ou algo do tipo)
+
+7. atualizar_partidas_update 
+   Variação da 3 soque ao modificar um resultado da partida(caso mude os lutadores por exemplo)
+
+8. Delete_Confrontos 
+   Ao deletar um confronto, reverte as estatísticas (pontos, vitórias, empates, derrotas, partidas) dos lutadores envolvidos no confronto.
+
+---
+
+# PROCEDURES
+
+1. promover_ML()  
+   Zera a tabela 'melhores_l' e insere os 4 lutadores com maior pontuação nela.
+
+2. reset_liga(  
+   Reseta todos os dados estatísticos dos lutadores (pontos, vitórias, empates, derrotas, saldo, partidas).
+
+3. criar_rivais()  
+   Atualiza a tabela 'rivalidade' com os pares de lutadores que mais se enfrentaram, agrupando de forma ordenada e evitando duplicatas com `LEAST()` e `GREATEST()`.
+
+---
+
+ FUNÇÕES
+
+1. calc_idade(data_nascimento DATE)  
+   Calcula a idade atual com base na data de nascimento do lutador (considera se já fez aniversário no ano atual).
+
+2. aproveitamento_L(nome_lutador VARCHAR)  
+   Calcula o aproveitamento de um lutador nos últimos 5 confrontos, baseado em regras de pontuação:
+   - Vitória: +2 pontos
+   - Empate: +1 ponto
+   - Derrota: 0
+
+3. perfil_L(p_id INT)  
+   Retorna uma string com as principais informações do lutador: nome, idade, CPF, telefone, pontos, vitórias e saldo.
+
+---
+
+## 🔍 VIEWS
+
+1. ranking_liga: Exibe o ranking dos lutadores com base na pontuação. (View Principal)
+2. visu_tl: Relaciona os nomes dos treinadores com seus respectivos lutadores em vez de mostrar o ID.
+3. MV: Lutadores com mais vitórias do que derrotas.
+4. MP: Lutadores com mais derrotas do que vitórias.
+5. LE: Lutadores com vitórias e derrotas iguais.
+6. l_femininos: Lista apenas lutadoras.
+7. l_masculinos: Lista apenas lutadores.
+8. order_idade: Lista os lutadores do mais velho para o mais novo.
+9. EF: Soma os pontos das lutadoras femininas.
+10. EM: Soma os pontos dos lutadores masculinos.
+11. EG: Compara a soma de pontos entre homens e mulheres.
+12. VerAproveitamento: Exibe o aproveitamento recente de cada lutador com base na função 'aproveitamento_L'. (caso queira vê o aproveitamento de todos, ao invés de 1)
+
